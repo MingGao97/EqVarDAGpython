@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import kendalltau
 import warnings
 warnings.filterwarnings("ignore")
-
+import EqVarDAG_TD
 
 # generate adjacency matrix
 
