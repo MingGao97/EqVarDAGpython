@@ -39,13 +39,3 @@ def EqVarDAG_TD(X):
                 result[this,now] = 1
 
     return result, rr[::-1]
-
-
-x1=np.random.normal(size=100)
-x2=x1+np.random.normal(size=100)
-x3=x2+np.random.normal(size=100)
-x4=x3+np.random.normal(size=100)
-x5=x4+np.random.normal(size=100)
-x6=x5+np.random.normal(size=100)
-x7=x6+np.random.normal(size=100)
-x=np.c_[x1,x2,x3,x4,x5,x6,x7]
