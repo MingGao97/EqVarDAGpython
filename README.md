@@ -12,10 +12,10 @@ https://arxiv.org/abs/1807.03419
 Only top-down methods, which are proposed in the paper, are implemented.
 
 # Requirements
-numpy
+* numpy
 
-sklearn
+* sklearn
 
-rpy2
+* rpy2
 
-scipy
+* scipy
