@@ -1,6 +1,6 @@
 import numpy as np
-from sklearn.linear_model import LassoCV
-from sklearn.linear_model import Lasso
+#from sklearn.linear_model import LassoCV
+#from sklearn.linear_model import Lasso
 from statsmodels.api import OLS
 
 from rpy2.robjects import r as ror
@@ -52,8 +52,6 @@ def getOrdering(X, J):
         utils = importr('utils')
         utils.install_packages('leaps')
         leaps = importr('leaps')
-    r = ror
-    numpy2ri.activate()
     ###
     p = X.shape[1]
     theta = []
@@ -82,9 +80,17 @@ def getOrdering(X, J):
 # X is n by p design matrix, J is the max indegree
 def EqVarDAG_HD_TD(X, J):
     n, p = X.shape
+    r = ror
+    numpy2ri.activate()
+    try:
+        glmnet = importr('glmnet')
+    except:
+        utils = importr('utils')
+        utils.install_packages('glmnet')
+        glmnet = importr('glmnet')
     # get ordering
     rr = getOrdering(X, J)[::-1]
-    # adjacancy matrix
+    # adjacency matrix
     result = np.zeros([p,p])
     for i in range(p-1):
         now = rr[i]
@@ -92,20 +98,36 @@ def EqVarDAG_HD_TD(X, J):
         if len(this) > 1:
             if n > 100:
                 # n > 100, lasso select model by 1se rule
+                lassoModel = glmnet.cv_glmnet(X[:,this],X[:,now][:,np.newaxis])
+                betaFit = np.array(r['as.matrix'](r['coefficients'](lassoModel)))[1:,0]
+                
+                '''sklean
                 lassoModel = LassoCV(cv=10).fit(X[:,this],X[:,now])
                 indi = np.where(lassoModel.alphas_ == lassoModel.alpha_)[0]
                 maxcv = lassoModel.mse_path_[indi,:].mean() + lassoModel.mse_path_[indi,:].std()/np.sqrt(10)
                 best = np.where(lassoModel.mse_path_.mean(axis=1) < maxcv)[0][0]
                 lassoModel = Lasso(alpha = lassoModel.alphas_[best]).fit(X[:,this],X[:,now])
                 betaFit = lassoModel.coef_
+                '''
+                
             else:
                 # if n < 100, use a BIC-like criterian to selection model
-                _,lassoCoefs,_ = Lasso().path(X[:,this],X[:,now])
-                resid = np.apply_along_axis(lambda z:z-X[:,now], 0, X[:,this]@lassoCoefs)
+                lassoModel = glmnet.glmnet(X[:,this],X[:,now][:,np.newaxis])
+                resid = (np.array(r['predict'](lassoModel,X[:,this]))-X[:,now][:,np.newaxis])
+                rss = (resid**2).sum(axis=0)
+                df = np.array(lassoModel[2])
+                bic = n*np.log(rss/n) + df*np.log(n) + 2*df*np.log(p-i-1)
+                betaFit = np.array(r['as.matrix'](lassoModel[1]))[:,np.argmin(bic)]
+                
+                '''sklearn
+                _,lassoCoefs,_ = Lasso(fit_intercept = False).path(X[:,this], X[:,now])
+                resid = np.apply_along_axis(lambda z:z-y, 0, x@lassoCoefs)
                 rss = (resid**2).sum(axis=0)
                 df = (lassoCoefs!=0).sum(axis=0)
                 bic = n*np.log(rss/n) + df*np.log(n) + 2*df*np.log(p-i-1)
                 betaFit = lassoCoefs[:,np.argmin(bic)]
+                '''
+                
             for j in range(len(this)):
                 if betaFit[j]!=0:
                     result[this[j],now] = 1    
