@@ -14,8 +14,6 @@ Only top-down methods, which are proposed in the paper, are implemented.
 # Requirements
 * numpy
 
-* sklearn
-
 * rpy2
 
 * scipy
