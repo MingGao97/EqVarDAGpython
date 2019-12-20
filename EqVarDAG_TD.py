@@ -42,6 +42,7 @@ def EqVarDAG_TD(X):
         if len(this) > 1:
             lassoModel = glmnet.cv_glmnet(X[:,this],X[:,now][:,np.newaxis])
             betaFit = np.array(r['as.matrix'](r['coefficients'](lassoModel)))[1:,0]
+            
             '''sklean    
             # variable selection by lasso, not estimate coefficients
             # model selection by 1se rule
@@ -51,6 +52,7 @@ def EqVarDAG_TD(X):
             best = np.where(lassoModel.mse_path_.mean(axis=1) < maxcv)[0][0]
             lassoModel = Lasso(alpha = lassoModel.alphas_[best]).fit(X[:,this],X[:,now])
             betaFit = lassoModel.coef_
+            
             '''
             for j in range(len(this)):
                 if betaFit[j]!=0:
