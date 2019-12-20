@@ -1,7 +1,11 @@
 import numpy as np
-from sklearn.linear_model import LassoCV
-from sklearn.linear_model import Lasso
+#from sklearn.linear_model import LassoCV
+#from sklearn.linear_model import Lasso
 from statsmodels.api import OLS
+
+from rpy2.robjects import r as ror
+from rpy2.robjects.packages import importr
+import rpy2.robjects.numpy2ri as numpy2ri
 
 # get ordering of the nodes by computing the conditional variance
 # X is a n by p design matrix
@@ -20,6 +24,14 @@ def EqVarDAG_TD_internal(X):
 # X is a n by p design matrix
 def EqVarDAG_TD(X):
     n, p = X.shape
+    r = ror
+    numpy2ri.activate()
+    try:
+        glmnet = importr('glmnet')
+    except:
+        utils = importr('utils')
+        utils.install_packages('glmnet')
+        glmnet = importr('glmnet')
     # get ordering of the nodes
     rr = EqVarDAG_TD_internal(X)[::-1]
     # adjacency matrix
@@ -28,6 +40,9 @@ def EqVarDAG_TD(X):
         now = rr[i]
         this = sorted(rr[(i+1):])
         if len(this) > 1:
+            lassoModel = glmnet.cv_glmnet(X[:,this],X[:,now][:,np.newaxis])
+            betaFit = np.array(r['as.matrix'](r['coefficients'](lassoModel)))[1:,0]
+            '''sklean    
             # variable selection by lasso, not estimate coefficients
             # model selection by 1se rule
             lassoModel = LassoCV(cv = 10).fit(X[:,this],X[:,now])
@@ -36,6 +51,7 @@ def EqVarDAG_TD(X):
             best = np.where(lassoModel.mse_path_.mean(axis=1) < maxcv)[0][0]
             lassoModel = Lasso(alpha = lassoModel.alphas_[best]).fit(X[:,this],X[:,now])
             betaFit = lassoModel.coef_
+            '''
             for j in range(len(this)):
                 if betaFit[j]!=0:
                     result[this[j],now] = 1
